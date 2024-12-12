@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { Box } from "@mui/material";
 import { useTheme } from "next-themes";
@@ -6,7 +6,7 @@ import { format } from "timeago.js";
 import { useGetAllOrdersQuery } from "@/redux/features/orders/ordersApi";
 import { useGetAllUsersQuery } from "@/redux/features/user/userApi";
 import { useGetAllCoursesQuery } from "@/redux/features/courses/coursesApi";
-import { AiOutlineMail } from "react-icons/ai"; // Import the mail icon
+import { AiOutlineMail } from "react-icons/ai";
 import Loader from "../../Loader/Loader";
 
 type Props = {
@@ -14,22 +14,18 @@ type Props = {
 };
 
 const AllInvoices = ({ isDashboard }: Props) => {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const { isLoading, data } = useGetAllOrdersQuery({});
   const { data: usersData } = useGetAllUsersQuery({});
   const { data: coursesData } = useGetAllCoursesQuery({});
-
-  const [orderData, setOrderdata] = useState<any>([]);
+  
+  const [orderData, setOrderData] = useState<any>([]);
 
   useEffect(() => {
-    if (data) {
+    if (data && usersData && coursesData) {
       const temp = data.orders.map((item: any) => {
-        const user = usersData?.users.find(
-          (user: any) => user._id === item.userId // Fixed comparison operator
-        );
-        const course = coursesData?.courses.find(
-          (course: any) => course._id === item.courseId // Fixed variable name and comparison
-        );
+        const user = usersData.users.find((user: any) => user._id === item.userId);
+        const course = coursesData.courses.find((course: any) => course._id === item.courseId);
         return {
           ...item,
           userName: user?.name,
@@ -38,16 +34,17 @@ const AllInvoices = ({ isDashboard }: Props) => {
           price: "$" + course?.price,
         };
       });
-      setOrderdata(temp);
+      setOrderData(temp);
     }
-  }, [data, usersData, coursesData]); // Fixed variable name for usersData and coursesData
+  }, [data, usersData, coursesData]);
 
-  const columns: any = [
+  // Using useMemo to optimize re-rendering
+  const columns = useMemo(() => [
     { field: "id", headerName: "ID", flex: 0.3 },
     {
       field: "userName",
       headerName: "Name",
-      flex: isDashboard ? 7.6 : 0.5, // Conditional flex value
+      flex: isDashboard ? 7.6 : 0.5, 
     },
     ...(isDashboard
       ? []
@@ -65,30 +62,22 @@ const AllInvoices = ({ isDashboard }: Props) => {
             flex: 0.2,
             renderCell: (params: any) => (
               <a href={`mailto:${params.row.userEmail}`}>
-                <AiOutlineMail
-                  className="dark:text-white text-black"
-                  size={20}
-                />
+                <AiOutlineMail className="dark:text-white text-black" size={20} />
               </a>
             ),
           },
         ]),
-  ];
+  ], [isDashboard]);
 
-  const rows: any = [];
-
-  if (orderData) {
-    orderData.forEach((item: any) => {
-      rows.push({
-        id: item._id,
-        userName: item.userName,
-        userEmail: item.userEmail,
-        title: item.title,
-        price: item.price,
-        created_at: format(item.createdAt), // Example format
-      });
-    });
-  }
+  const rows = useMemo(() => 
+    orderData.map((item: any) => ({
+      id: item._id,
+      userName: item.userName,
+      userEmail: item.userEmail,
+      title: item.title,
+      price: item.price,
+      created_at: format(item.createdAt),
+    })), [orderData]);
 
   return (
     <div className={!isDashboard ? "mt-[120px]" : "mt-[0px]"}>
@@ -100,10 +89,7 @@ const AllInvoices = ({ isDashboard }: Props) => {
             sx={{
               "& .MuiDataGrid-row": {
                 color: theme === "dark" ? "#fff" : "#000",
-                borderBottom:
-                  theme === "dark"
-                    ? "1px solid #ffffff30!important"
-                    : "1px solid #ccc!important",
+                borderBottom: theme === "dark" ? "1px solid #ffffff30!important" : "1px solid #ccc!important",
               },
               "& .MuiTablePagination-root": {
                 color: theme === "dark" ? "#fff" : "#000",
@@ -115,11 +101,8 @@ const AllInvoices = ({ isDashboard }: Props) => {
                 color: theme === "dark" ? "#fff" : "#000",
               },
               "& .MuiDataGrid-columnHeaders": {
-                //   backgroundColor: theme === 'dark' ? '#3e4396' : '#A4A9FC',
                 borderBottom: "none",
-                //   color: theme === 'dark' ? '#fff' : '#000',
               },
-
               "& .MuiDataGrid-virtualScroller": {
                 backgroundColor: theme === "dark" ? "#1F2A40" : "#F2F0F0",
               },
@@ -129,8 +112,7 @@ const AllInvoices = ({ isDashboard }: Props) => {
                 backgroundColor: theme === "dark" ? "#3e4396" : "#A4A9FC",
               },
               "& .MuiCheckbox-root": {
-                color:
-                  theme === "dark" ? "#b7ebde!important" : "#000!important",
+                color: theme === "dark" ? "#b7ebde!important" : "#000!important",
               },
               "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
                 color: "#fff!important",
@@ -144,10 +126,10 @@ const AllInvoices = ({ isDashboard }: Props) => {
             }}
           >
             <DataGrid
-              checkboxSelection={isDashboard ? false : true}
+              checkboxSelection={!isDashboard}
               rows={rows}
               columns={columns}
-              components={isDashboard ? {} : { Toolbar: GridToolbar }}
+              // components={!isDashboard ? { Toolbar: GridToolbar } : {}}
               sx={{
                 height: isDashboard ? "35vh" : "90vh",
                 overflow: "hidden",

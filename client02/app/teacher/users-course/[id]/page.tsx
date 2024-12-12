@@ -10,7 +10,7 @@ import { useParams } from 'next/navigation';
 
 type Props = {}
 
-const page = (props: Props) => {
+const Page = (props: Props) => {
 
   const params = useParams(); // Sử dụng useParams trực tiếp
 
@@ -42,4 +42,4 @@ const page = (props: Props) => {
     )
 }
 
-export default page
+export default Page

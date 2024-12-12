@@ -72,7 +72,7 @@ const DashboardHeader: FC<Props> = ({ open, setOpen }) => {
   }, [data, isSuccess]);
 
   useEffect(() => {
-    socketId.on("connect", (data) => {
+    socketId.on("connect", () => {
       refetch();
       console.log("Socket connected successfully");
     });
